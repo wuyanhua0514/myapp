@@ -2,6 +2,8 @@ import { Button, message, notification } from 'antd';
 import React from 'react';
 import { formatMessage } from 'umi-plugin-react/locale';
 import defaultSettings from '../config/defaultSettings';
+import {alias} from '@/utils/alia';
+import {setAuthority} from '@/utils/authority';
 const { pwa } = defaultSettings; // if pwa is true
 
 if (pwa) {
@@ -99,3 +101,41 @@ if (pwa) {
     });
   }
 }
+// const token=location.search.includes("token")?location.search.split("token")[1].substr(1):null;
+console.log(window.location.href.includes("token"),"判断");
+if(window.location.search){
+  console.log("进入")
+  const info = decodeURI(window.location.search)
+  .split('?')[1]
+  .split('&');
+const token = info[0].split('=')[1];
+let date = new Date();
+date.setTime(date.getTime() + 10 * 60 * 60 * 1000);
+sessionStorage.getItem('token') ? null : sessionStorage.setItem('token', token, { path: '/', expires: date });
+ if(token){
+  const prefix =
+  location.href.includes('test') || location.href.includes('localhost')
+    ? alias.testInterface
+    : location.hostname.includes(alias.hostname)
+    ? alias.prodInterface
+    : alias.localInterface
+    ? alias.localInterface
+    : alias.extranetInterface;
+
+fetch(`${prefix}/permission/me`, {
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+})
+  .then(res => res.json())
+  .then(
+    ret => {
+      ret.data.permissions && setAuthority(ret.data.permissions);
+    },
+  );
+ }
+}
+
+
+
+

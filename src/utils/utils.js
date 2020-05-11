@@ -38,6 +38,8 @@ export const getAuthorityFromRouter = (router = [], pathname) => {
   return undefined;
 };
 export const getRouteAuthority = (path, routeData) => {
+  console.log(path,"path");
+  console.log(routeData,"routeData")
   let authorities;
   routeData.forEach(route => {
     // match prefix

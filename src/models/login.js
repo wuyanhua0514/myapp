@@ -11,13 +11,14 @@ const Model = {
   },
   effects: {
     *login({ payload }, { call, put }) {
+      console.log(payload,"payload")
       const response = yield call(fakeAccountLogin, payload);
       yield put({
         type: 'changeLoginStatus',
         payload: response,
       }); // Login successfully
 
-      if (response.status === 'ok') {
+      if (response.error_code =="0") {
         const urlParams = new URL(window.location.href);
         const params = getPageQuery();
         let { redirect } = params;
@@ -51,16 +52,16 @@ const Model = {
       if (window.location.pathname !== '/user/login' && !redirect) {
         router.replace({
           pathname: '/user/login',
-          search: stringify({
-            redirect: window.location.href,
-          }),
+          // search: stringify({
+          //   redirect: window.location.href,
+          // }),
         });
       }
     },
   },
   reducers: {
     changeLoginStatus(state, { payload }) {
-      setAuthority(payload.currentAuthority);
+      setAuthority(payload.data.permissions);
       return { ...state, status: payload.status, type: payload.type };
     },
   },

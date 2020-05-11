@@ -4,7 +4,8 @@
  */
 import { extend } from 'umi-request';
 import { notification } from 'antd';
-
+import {alias,itemPermission} from "@/utils/alia";
+import { router } from 'umi';
 const codeMessage = {
   200: '服务器成功返回请求的数据。',
   201: '新建或修改数据成功。',
@@ -27,31 +28,73 @@ const codeMessage = {
  */
 
 const errorHandler = error => {
-  const { response } = error;
-
-  if (response && response.status) {
-    const errorText = codeMessage[response.status] || response.statusText;
-    const { status, url } = response;
-    notification.error({
-      message: `请求错误 ${status}: ${url}`,
-      description: errorText,
-    });
-  } else if (!response) {
-    notification.error({
-      description: '您的网络发生异常，无法连接服务器',
-      message: '网络异常',
-    });
+  const { response = {} } = error;
+  let errortext = codeMessage[response.status] || response.statusText;
+  const { status } = response;
+  // console.log(`response${JSON.stringify(response)}`)
+  if (status === 400 && !window.sessionStorage.getItem('token')) {
+    errortext = '账户名或密码错误'
   }
-
-  return response;
+  if (status === 401) {
+    notification.error({
+      message: `登录已过期，请重新登录`,
+      duration: 2,
+    });
+    window.sessionStorage.clear()
+    router.replace({
+      pathname: '/login'
+    });
+    return
+  }
+  notification.error({
+    message: `请求错误 ${status}`,
+    description: errortext,
+  });
+  return error
 };
 /**
  * 配置request请求时的默认参数
  */
-
+const prefix =
+  location.href.includes('test') || location.href.includes('localhost')
+    ? alias.localInterface
+      ? alias.localInterface
+      : alias.testInterface
+    : location.hostname.includes(alias.hostname)
+    ? alias.prodInterface
+    : alias.testInterface;
 const request = extend({
+  prefix,
   errorHandler,
   // 默认错误处理
-  credentials: 'include', // 默认请求是否带上cookie
+  // credentials: 'include', // 默认请求是否带上cookie
+});
+request.interceptors.request.use(async (url, options) => {
+ 
+  let c_token = sessionStorage.getItem("token");
+  console.log(c_token,"token")
+  if (c_token) {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      "Authorization": `Bearer ${c_token}`,
+    };
+    return (
+      {
+        url: url,
+        options: { ...options, headers: headers },
+      }
+    );
+  }
+
+})
+
+// response拦截器, 处理response
+request.interceptors.response.use((response, options) => {
+  let token = response.headers.get("token");
+  if (token) {
+    localStorage.setItem("token", token);
+  }
+  return response;
 });
 export default request;
